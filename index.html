@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lista della Spesa Condivisa</title>
+    <title>Lista della Spesa - GitHub Gist</title>
     <style>
         :root {
             --primary-color: #27ae60;
@@ -127,26 +127,9 @@
             background-color: rgba(52, 152, 219, 0.1);
         }
         
-        .icon-button {
-            background-color: transparent;
-            font-size: 18px;
-            padding: 5px 10px;
-        }
-        
         .fullwidth {
             width: 100%;
             margin-bottom: 15px;
-        }
-        
-        .refresh-button {
-            background-color: #f39c12;
-            color: white;
-            padding: 10px;
-            margin-bottom: 15px;
-        }
-        
-        .refresh-button:hover {
-            background-color: #d35400;
         }
         
         /* Input Containers */
@@ -255,10 +238,62 @@
             color: var(--secondary-color);
         }
         
+        .warning {
+            background-color: rgba(243, 156, 18, 0.1);
+            color: #f39c12;
+        }
+        
+        .error {
+            background-color: rgba(231, 76, 60, 0.1);
+            color: var(--danger-color);
+        }
+        
         .hint {
             font-size: 14px;
             color: var(--text-light);
             margin-top: 5px;
+        }
+        
+        /* Setup Form */
+        .setup-container {
+            margin-top: 20px;
+        }
+        
+        .setup-form label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .setup-form input {
+            margin-bottom: 15px;
+        }
+        
+        .setup-form button {
+            width: 100%;
+        }
+        
+        /* Loading */
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 25px;
+            height: 25px;
+            border: 3px solid rgba(52, 152, 219, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--secondary-color);
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
         
         /* Mobile Responsive */
@@ -277,53 +312,71 @@
     <div class="container">
         <h1>Lista della Spesa Condivisa</h1>
         
-        <div id="refresh-container" style="display: none;">
-            <button id="refresh-button" class="refresh-button fullwidth">Aggiorna lista</button>
+        <!-- Setup Form -->
+        <div id="setup-container" class="card">
+            <h2>Configura il tuo Gist</h2>
+            <p class="hint">Per salvare e condividere la tua lista, inserisci questi dettagli una tantum:</p>
+            
+            <div class="setup-form">
+                <label for="gist-id">ID del Gist:</label>
+                <input type="text" id="gist-id" placeholder="Es: a1b2c3d4e5f6g7h8i9j0">
+                
+                <label for="gist-filename">Nome del file (con .json):</label>
+                <input type="text" id="gist-filename" placeholder="Es: lista-spesa.json" value="lista-spesa.json">
+                
+                <button id="save-gist-config" class="primary-button">Salva configurazione</button>
+            </div>
         </div>
         
-        <div class="input-container">
-            <input type="text" id="item-input" placeholder="Aggiungi un prodotto...">
-            <button id="add-button" class="primary-button">Aggiungi</button>
+        <div id="app-container" style="display:none;">
+            <div class="input-container">
+                <input type="text" id="item-input" placeholder="Aggiungi un prodotto...">
+                <button id="add-button" class="primary-button">Aggiungi</button>
+            </div>
+            
+            <button id="bulk-input-toggle" class="secondary-button fullwidth">Inserisci lista da testo</button>
+            
+            <div id="bulk-input-container" class="bulk-input-container">
+                <textarea id="bulk-text" placeholder="Incolla qui il testo con gli elementi da acquistare (separati da virgole, righe o punti)..."></textarea>
+                <button id="process-text-button" class="secondary-button fullwidth">Estrai elementi dal testo</button>
+            </div>
+            
+            <ul id="shopping-list">
+                <li class="empty-list">La tua lista della spesa è vuota</li>
+            </ul>
+            
+            <button id="clear-all" class="danger-button fullwidth">Cancella tutta la lista</button>
+            
+            <div class="card">
+                <h2>Gestione lista</h2>
+                <button id="refresh-list" class="secondary-button fullwidth">Aggiorna lista</button>
+                <button id="save-list" class="primary-button fullwidth">Salva lista su Gist</button>
+                <div id="sync-status" class="status info" style="display:none;"></div>
+            </div>
+            
+            <div class="card">
+                <h2>Condividi la tua lista</h2>
+                <p class="hint">Condividi questo link per accedere alla stessa lista su più dispositivi:</p>
+                <input type="text" id="share-url" readonly>
+                <button id="copy-link" class="secondary-button fullwidth">Copia link</button>
+                <div id="copy-status" class="status" style="display:none;"></div>
+            </div>
         </div>
         
-        <button id="bulk-input-toggle" class="secondary-button fullwidth">Inserisci lista da testo</button>
-        
-        <div id="bulk-input-container" class="bulk-input-container">
-            <textarea id="bulk-text" placeholder="Incolla qui il testo con gli elementi da acquistare (separati da virgole, righe o punti)..."></textarea>
-            <button id="process-text-button" class="secondary-button fullwidth">Estrai elementi dal testo</button>
-        </div>
-        
-        <ul id="shopping-list">
-            <li class="empty-list">La tua lista della spesa è vuota</li>
-        </ul>
-        
-        <button id="clear-all" class="danger-button fullwidth">Cancella tutta la lista</button>
-        
-        <div class="card">
-            <h2>Condividi la tua lista</h2>
-            <p class="hint">Questo link rimane sempre valido anche quando aggiorni la lista:</p>
-            <input type="text" id="share-url" readonly>
-            <button id="copy-link" class="secondary-button fullwidth">Copia link</button>
-            <div id="copy-status" class="status" style="display:none;"></div>
-        </div>
-        
-        <div class="card">
-            <h2>Importa/Esporta</h2>
-            <p class="hint">Esporta la tua lista in un file per salvarla:</p>
-            <button id="export-button" class="secondary-button fullwidth">Esporta come file</button>
-            <p class="hint" style="margin-top: 15px;">Importa da un file precedentemente esportato:</p>
-            <input type="file" id="import-file" accept=".json" style="display:none;">
-            <button id="import-button" class="outline-button">Importa da file</button>
-        </div>
-        
-        <div id="save-status" class="status info">
-            ✓ La lista viene salvata localmente sul dispositivo
+        <div id="loading" class="loading">
+            <span class="spinner"></span> Caricamento in corso...
         </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // DOM Elements
+            const setupContainer = document.getElementById('setup-container');
+            const appContainer = document.getElementById('app-container');
+            const loadingIndicator = document.getElementById('loading');
+            const gistIdInput = document.getElementById('gist-id');
+            const gistFilenameInput = document.getElementById('gist-filename');
+            const saveGistConfigButton = document.getElementById('save-gist-config');
             const itemInput = document.getElementById('item-input');
             const addButton = document.getElementById('add-button');
             const shoppingList = document.getElementById('shopping-list');
@@ -332,22 +385,64 @@
             const bulkText = document.getElementById('bulk-text');
             const processTextButton = document.getElementById('process-text-button');
             const clearAllButton = document.getElementById('clear-all');
+            const refreshListButton = document.getElementById('refresh-list');
+            const saveListButton = document.getElementById('save-list');
+            const syncStatus = document.getElementById('sync-status');
             const shareUrl = document.getElementById('share-url');
             const copyLinkButton = document.getElementById('copy-link');
             const copyStatus = document.getElementById('copy-status');
-            const exportButton = document.getElementById('export-button');
-            const importButton = document.getElementById('import-button');
-            const importFile = document.getElementById('import-file');
-            const refreshContainer = document.getElementById('refresh-container');
-            const refreshButton = document.getElementById('refresh-button');
             
             // Initialize variables
             let shoppingItems = [];
-            let listId = '';
-            let isSharedList = false;
+            let gistId = '';
+            let gistFilename = 'lista-spesa.json';
             
-            // Initialize list
-            initializeList();
+            // Load saved configuration
+            loadConfig();
+            
+            // Save Gist configuration
+            saveGistConfigButton.addEventListener('click', function() {
+                const newGistId = gistIdInput.value.trim();
+                const newFilename = gistFilenameInput.value.trim();
+                
+                if (!newGistId) {
+                    alert('Per favore inserisci l\'ID del Gist');
+                    return;
+                }
+                
+                if (!newFilename || !newFilename.endsWith('.json')) {
+                    alert('Per favore inserisci un nome di file valido con estensione .json');
+                    return;
+                }
+                
+                gistId = newGistId;
+                gistFilename = newFilename;
+                
+                // Save configuration to localStorage
+                localStorage.setItem('gistConfig', JSON.stringify({
+                    id: gistId,
+                    filename: gistFilename
+                }));
+                
+                // Show loading indicator
+                setupContainer.style.display = 'none';
+                loadingIndicator.style.display = 'block';
+                
+                // Try to load the list from the Gist
+                fetchListFromGist()
+                    .then(data => {
+                        shoppingItems = data || [];
+                        renderShoppingList();
+                        showApp();
+                    })
+                    .catch(error => {
+                        console.error('Error loading list from Gist:', error);
+                        
+                        // If there's an error, still show the app with an empty list
+                        showApp();
+                        showSyncStatus('Errore nel caricamento della lista. Verifica che l\'ID del Gist sia corretto.', 'error');
+                    });
+            });
             
             // Add item when clicking the Add button
             addButton.addEventListener('click', addNewItem);
@@ -357,13 +452,6 @@
                 if (e.key === 'Enter') {
                     addNewItem();
                 }
-            });
-            
-            // Refresh button to get the latest list
-            refreshButton.addEventListener('click', function() {
-                loadListFromLocalStorage(listId);
-                renderShoppingList();
-                showCopyStatus('Lista aggiornata!', 'success');
             });
             
             // Toggle bulk input container
@@ -391,7 +479,7 @@
                         if (uniqueNewItems.length > 0) {
                             shoppingItems = [...shoppingItems, ...uniqueNewItems];
                             renderShoppingList();
-                            saveList();
+                            saveListToLocalStorage();
                         }
                         
                         // Clear the text area
@@ -409,8 +497,42 @@
                 if (confirm('Sei sicuro di voler cancellare tutta la lista?')) {
                     shoppingItems = [];
                     renderShoppingList();
-                    saveList();
+                    saveListToLocalStorage();
                 }
+            });
+            
+            // Refresh list from Gist
+            refreshListButton.addEventListener('click', function() {
+                loadingIndicator.style.display = 'block';
+                
+                fetchListFromGist()
+                    .then(data => {
+                        shoppingItems = data || [];
+                        renderShoppingList();
+                        loadingIndicator.style.display = 'none';
+                        showSyncStatus('Lista aggiornata con successo!', 'success');
+                    })
+                    .catch(error => {
+                        console.error('Error refreshing list from Gist:', error);
+                        loadingIndicator.style.display = 'none';
+                        showSyncStatus('Errore nell\'aggiornamento della lista.', 'error');
+                    });
+            });
+            
+            // Save list to Gist
+            saveListButton.addEventListener('click', function() {
+                loadingIndicator.style.display = 'block';
+                
+                saveListToGist()
+                    .then(() => {
+                        loadingIndicator.style.display = 'none';
+                        showSyncStatus('Lista salvata con successo!', 'success');
+                    })
+                    .catch(error => {
+                        console.error('Error saving list to Gist:', error);
+                        loadingIndicator.style.display = 'none';
+                        showSyncStatus('Errore nel salvataggio della lista.', 'error');
+                    });
             });
             
             // Copy share link
@@ -424,114 +546,63 @@
                 }
             });
             
-            // Export list to file
-            exportButton.addEventListener('click', function() {
-                if (shoppingItems.length === 0) {
-                    alert('La lista è vuota, non c\'è niente da esportare.');
-                    return;
-                }
-                
-                const data = {
-                    id: listId,
-                    items: shoppingItems
-                };
-                
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
-                const downloadAnchorNode = document.createElement('a');
-                downloadAnchorNode.setAttribute("href", dataStr);
-                downloadAnchorNode.setAttribute("download", "lista_spesa.json");
-                document.body.appendChild(downloadAnchorNode);
-                downloadAnchorNode.click();
-                downloadAnchorNode.remove();
-            });
-            
-            // Import list from file
-            importButton.addEventListener('click', function() {
-                importFile.click();
-            });
-            
-            importFile.addEventListener('change', function(event) {
-                const file = event.target.files[0];
-                if (!file) return;
-                
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    try {
-                        const data = JSON.parse(e.target.result);
-                        
-                        if (data && data.items && Array.isArray(data.items) && data.items.length > 0) {
-                            if (confirm('Vuoi sostituire la lista attuale con quella importata?')) {
-                                if (data.id) {
-                                    listId = data.id;
-                                    updateShareUrl();
-                                }
-                                
-                                shoppingItems = data.items;
-                                renderShoppingList();
-                                saveList();
-                                alert('Lista importata con successo!');
-                            }
-                        } else {
-                            alert('Il file non contiene elementi validi.');
-                        }
-                    } catch (error) {
-                        alert('Errore durante l\'importazione del file. Assicurati che sia un file JSON valido.');
-                        console.error('Errore di importazione:', error);
-                    }
-                };
-                reader.readAsText(file);
-                // Reset input to allow selecting the same file again
-                importFile.value = '';
-            });
-            
             // Functions
-            function initializeList() {
-                // Check if we have a list ID in the URL
-                const urlParams = new URLSearchParams(window.location.search);
-                const urlListId = urlParams.get('list');
+            function loadConfig() {
+                const savedConfig = localStorage.getItem('gistConfig');
                 
-                if (urlListId) {
-                    // We're viewing a shared list
-                    listId = urlListId;
-                    isSharedList = true;
-                    refreshContainer.style.display = 'block';
-                    
-                    // Load the list from localStorage if it exists
-                    loadListFromLocalStorage(listId);
-                } else {
-                    // Create a new list or load saved list
-                    const savedListId = localStorage.getItem('currentListId');
-                    
-                    if (savedListId) {
-                        listId = savedListId;
-                        loadListFromLocalStorage(listId);
-                    } else {
-                        // Generate a new list ID
-                        listId = generateListId();
-                        localStorage.setItem('currentListId', listId);
-                    }
-                }
-                
-                renderShoppingList();
-                updateShareUrl();
-            }
-            
-            function loadListFromLocalStorage(id) {
-                const savedItems = localStorage.getItem('list_' + id);
-                if (savedItems) {
+                if (savedConfig) {
                     try {
-                        shoppingItems = JSON.parse(savedItems);
+                        const config = JSON.parse(savedConfig);
+                        gistId = config.id;
+                        gistFilename = config.filename || 'lista-spesa.json';
+                        
+                        // Check if we have a Gist ID in the URL
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const urlGistId = urlParams.get('gist');
+                        
+                        if (urlGistId) {
+                            // Use the Gist ID from the URL
+                            gistId = urlGistId;
+                            
+                            // Save this new Gist ID for next time
+                            localStorage.setItem('gistConfig', JSON.stringify({
+                                id: gistId,
+                                filename: gistFilename
+                            }));
+                        }
+                        
+                        // Set the input values
+                        gistIdInput.value = gistId;
+                        gistFilenameInput.value = gistFilename;
+                        
+                        // If we have a Gist ID, try to load the list
+                        if (gistId) {
+                            loadingIndicator.style.display = 'block';
+                            setupContainer.style.display = 'none';
+                            
+                            fetchListFromGist()
+                                .then(data => {
+                                    shoppingItems = data || [];
+                                    renderShoppingList();
+                                    showApp();
+                                })
+                                .catch(error => {
+                                    console.error('Error loading list from Gist:', error);
+                                    setupContainer.style.display = 'block';
+                                    loadingIndicator.style.display = 'none';
+                                });
+                        }
                     } catch (e) {
-                        console.error('Error parsing saved items:', e);
-                        shoppingItems = [];
+                        console.error('Error parsing saved config:', e);
                     }
-                } else {
-                    shoppingItems = [];
                 }
             }
             
-            function generateListId() {
-                return Math.random().toString(36).substring(2, 8).toUpperCase();
+            function showApp() {
+                setupContainer.style.display = 'none';
+                loadingIndicator.style.display = 'none';
+                appContainer.style.display = 'block';
+                updateShareUrl();
             }
             
             function addNewItem() {
@@ -541,7 +612,7 @@
                     if (!shoppingItems.includes(itemText)) {
                         shoppingItems.push(itemText);
                         renderShoppingList();
-                        saveList();
+                        saveListToLocalStorage();
                     }
                     
                     // Clear input field
@@ -553,7 +624,7 @@
             function removeItem(itemText) {
                 shoppingItems = shoppingItems.filter(item => item !== itemText);
                 renderShoppingList();
-                saveList();
+                saveListToLocalStorage();
             }
             
             function renderShoppingList() {
@@ -587,14 +658,76 @@
                 });
             }
             
-            function saveList() {
-                localStorage.setItem('list_' + listId, JSON.stringify(shoppingItems));
-                localStorage.setItem('currentListId', listId);
+            function saveListToLocalStorage() {
+                localStorage.setItem('shoppingList', JSON.stringify(shoppingItems));
+            }
+            
+            function fetchListFromGist() {
+                const url = `https://api.github.com/gists/${gistId}`;
+                
+                return fetch(url)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.files && data.files[gistFilename]) {
+                            const content = data.files[gistFilename].content;
+                            try {
+                                return JSON.parse(content);
+                            } catch (e) {
+                                console.error('Error parsing Gist content:', e);
+                                return [];
+                            }
+                        } else {
+                            console.warn('File not found in Gist');
+                            return [];
+                        }
+                    });
+            }
+            
+            function saveListToGist() {
+                const url = `https://api.github.com/gists/${gistId}`;
+                
+                // Prepare the update data
+                const data = {
+                    files: {}
+                };
+                
+                data.files[gistFilename] = {
+                    content: JSON.stringify(shoppingItems)
+                };
+                
+                return fetch(url, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                });
             }
             
             function updateShareUrl() {
                 const baseUrl = window.location.href.split('?')[0];
-                shareUrl.value = baseUrl + '?list=' + listId;
+                shareUrl.value = baseUrl + '?gist=' + gistId;
+            }
+            
+            function showSyncStatus(message, type) {
+                syncStatus.textContent = message;
+                syncStatus.className = 'status ' + type;
+                syncStatus.style.display = 'block';
+                
+                setTimeout(() => {
+                    syncStatus.style.display = 'none';
+                }, 5000);
             }
             
             function showCopyStatus(message, type) {
