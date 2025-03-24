@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lista della Spesa - GitHub Gist</title>
+    <title>Lista della Spesa - File JSON</title>
     <style>
         :root {
             --primary-color: #27ae60;
@@ -203,22 +203,6 @@
             display: block;
         }
         
-        /* Share Section */
-        .share-container {
-            margin-top: 20px;
-            text-align: center;
-        }
-        
-        #share-url {
-            font-size: 14px;
-            padding: 8px;
-            margin: 10px 0;
-            width: 100%;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            background-color: #f9f9f9;
-        }
-        
         /* Status Messages */
         .status {
             text-align: center;
@@ -252,25 +236,6 @@
             font-size: 14px;
             color: var(--text-light);
             margin-top: 5px;
-        }
-        
-        /* Setup Form */
-        .setup-container {
-            margin-top: 20px;
-        }
-        
-        .setup-form label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        
-        .setup-form input {
-            margin-bottom: 15px;
-        }
-        
-        .setup-form button {
-            width: 100%;
         }
         
         /* Loading */
@@ -310,57 +275,36 @@
 </head>
 <body>
     <div class="container">
-        <h1>Lista della Spesa Condivisa</h1>
+        <h1>Lista della Spesa</h1>
         
-        <!-- Setup Form -->
-        <div id="setup-container" class="card">
-            <h2>Configura il tuo Gist</h2>
-            <p class="hint">Per salvare e condividere la tua lista, inserisci questi dettagli una tantum:</p>
-            
-            <div class="setup-form">
-                <label for="gist-id">ID del Gist:</label>
-                <input type="text" id="gist-id" placeholder="Es: a1b2c3d4e5f6g7h8i9j0">
-                
-                <label for="gist-filename">Nome del file (con .json):</label>
-                <input type="text" id="gist-filename" placeholder="Es: lista-spesa.json" value="lista-spesa.json">
-                
-                <button id="save-gist-config" class="primary-button">Salva configurazione</button>
-            </div>
+        <div class="card">
+            <h2>Gestione lista</h2>
+            <button id="refresh-list" class="secondary-button fullwidth">Aggiorna lista dal file JSON</button>
+            <div id="sync-status" class="status info" style="display:none;"></div>
         </div>
         
-        <div id="app-container" style="display:none;">
-            <div class="input-container">
-                <input type="text" id="item-input" placeholder="Aggiungi un prodotto...">
-                <button id="add-button" class="primary-button">Aggiungi</button>
-            </div>
-            
-            <button id="bulk-input-toggle" class="secondary-button fullwidth">Inserisci lista da testo</button>
-            
-            <div id="bulk-input-container" class="bulk-input-container">
-                <textarea id="bulk-text" placeholder="Incolla qui il testo con gli elementi da acquistare (separati da virgole, righe o punti)..."></textarea>
-                <button id="process-text-button" class="secondary-button fullwidth">Estrai elementi dal testo</button>
-            </div>
-            
-            <ul id="shopping-list">
-                <li class="empty-list">La tua lista della spesa è vuota</li>
-            </ul>
-            
-            <button id="clear-all" class="danger-button fullwidth">Cancella tutta la lista</button>
-            
-            <div class="card">
-                <h2>Gestione lista</h2>
-                <button id="refresh-list" class="secondary-button fullwidth">Aggiorna lista</button>
-                <button id="save-list" class="primary-button fullwidth">Salva lista su Gist</button>
-                <div id="sync-status" class="status info" style="display:none;"></div>
-            </div>
-            
-            <div class="card">
-                <h2>Condividi la tua lista</h2>
-                <p class="hint">Condividi questo link per accedere alla stessa lista su più dispositivi:</p>
-                <input type="text" id="share-url" readonly>
-                <button id="copy-link" class="secondary-button fullwidth">Copia link</button>
-                <div id="copy-status" class="status" style="display:none;"></div>
-            </div>
+        <div class="input-container">
+            <input type="text" id="item-input" placeholder="Aggiungi un prodotto...">
+            <button id="add-button" class="primary-button">Aggiungi</button>
+        </div>
+        
+        <button id="bulk-input-toggle" class="secondary-button fullwidth">Inserisci lista da testo</button>
+        
+        <div id="bulk-input-container" class="bulk-input-container">
+            <textarea id="bulk-text" placeholder="Incolla qui il testo con gli elementi da acquistare (separati da virgole, righe o punti)..."></textarea>
+            <button id="process-text-button" class="secondary-button fullwidth">Estrai elementi dal testo</button>
+        </div>
+        
+        <ul id="shopping-list">
+            <li class="empty-list">La tua lista della spesa è vuota</li>
+        </ul>
+        
+        <button id="clear-all" class="danger-button fullwidth">Cancella tutta la lista</button>
+        
+        <div class="card">
+            <h2>Esporta lista per aggiornare il file JSON</h2>
+            <p class="hint">Scarica questo file e sostituisci il file "lista-spesa.json" nel repository:</p>
+            <button id="export-button" class="primary-button fullwidth">Esporta lista</button>
         </div>
         
         <div id="loading" class="loading">
@@ -371,12 +315,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // DOM Elements
-            const setupContainer = document.getElementById('setup-container');
-            const appContainer = document.getElementById('app-container');
             const loadingIndicator = document.getElementById('loading');
-            const gistIdInput = document.getElementById('gist-id');
-            const gistFilenameInput = document.getElementById('gist-filename');
-            const saveGistConfigButton = document.getElementById('save-gist-config');
             const itemInput = document.getElementById('item-input');
             const addButton = document.getElementById('add-button');
             const shoppingList = document.getElementById('shopping-list');
@@ -386,63 +325,15 @@
             const processTextButton = document.getElementById('process-text-button');
             const clearAllButton = document.getElementById('clear-all');
             const refreshListButton = document.getElementById('refresh-list');
-            const saveListButton = document.getElementById('save-list');
+            const exportButton = document.getElementById('export-button');
             const syncStatus = document.getElementById('sync-status');
-            const shareUrl = document.getElementById('share-url');
-            const copyLinkButton = document.getElementById('copy-link');
-            const copyStatus = document.getElementById('copy-status');
             
             // Initialize variables
             let shoppingItems = [];
-            let gistId = '';
-            let gistFilename = 'lista-spesa.json';
+            const jsonFilename = 'lista-spesa.json';
             
-            // Load saved configuration
-            loadConfig();
-            
-            // Save Gist configuration
-            saveGistConfigButton.addEventListener('click', function() {
-                const newGistId = gistIdInput.value.trim();
-                const newFilename = gistFilenameInput.value.trim();
-                
-                if (!newGistId) {
-                    alert('Per favore inserisci l\'ID del Gist');
-                    return;
-                }
-                
-                if (!newFilename || !newFilename.endsWith('.json')) {
-                    alert('Per favore inserisci un nome di file valido con estensione .json');
-                    return;
-                }
-                
-                gistId = newGistId;
-                gistFilename = newFilename;
-                
-                // Save configuration to localStorage
-                localStorage.setItem('gistConfig', JSON.stringify({
-                    id: gistId,
-                    filename: gistFilename
-                }));
-                
-                // Show loading indicator
-                setupContainer.style.display = 'none';
-                loadingIndicator.style.display = 'block';
-                
-                // Try to load the list from the Gist
-                fetchListFromGist()
-                    .then(data => {
-                        shoppingItems = data || [];
-                        renderShoppingList();
-                        showApp();
-                    })
-                    .catch(error => {
-                        console.error('Error loading list from Gist:', error);
-                        
-                        // If there's an error, still show the app with an empty list
-                        showApp();
-                        showSyncStatus('Errore nel caricamento della lista. Verifica che l\'ID del Gist sia corretto.', 'error');
-                    });
-            });
+            // Load list from JSON file
+            loadListFromFile();
             
             // Add item when clicking the Add button
             addButton.addEventListener('click', addNewItem);
@@ -501,108 +392,67 @@
                 }
             });
             
-            // Refresh list from Gist
+            // Refresh list from file
             refreshListButton.addEventListener('click', function() {
-                loadingIndicator.style.display = 'block';
-                
-                fetchListFromGist()
-                    .then(data => {
-                        shoppingItems = data || [];
-                        renderShoppingList();
-                        loadingIndicator.style.display = 'none';
-                        showSyncStatus('Lista aggiornata con successo!', 'success');
-                    })
-                    .catch(error => {
-                        console.error('Error refreshing list from Gist:', error);
-                        loadingIndicator.style.display = 'none';
-                        showSyncStatus('Errore nell\'aggiornamento della lista.', 'error');
-                    });
+                loadListFromFile();
             });
             
-            // Save list to Gist
-            saveListButton.addEventListener('click', function() {
-                loadingIndicator.style.display = 'block';
-                
-                saveListToGist()
-                    .then(() => {
-                        loadingIndicator.style.display = 'none';
-                        showSyncStatus('Lista salvata con successo!', 'success');
-                    })
-                    .catch(error => {
-                        console.error('Error saving list to Gist:', error);
-                        loadingIndicator.style.display = 'none';
-                        showSyncStatus('Errore nel salvataggio della lista.', 'error');
-                    });
-            });
-            
-            // Copy share link
-            copyLinkButton.addEventListener('click', function() {
-                shareUrl.select();
-                try {
-                    document.execCommand('copy');
-                    showCopyStatus('Link copiato negli appunti!', 'success');
-                } catch (err) {
-                    showCopyStatus('Errore nella copia: seleziona manualmente il link e copia', 'error');
+            // Export list as JSON file
+            exportButton.addEventListener('click', function() {
+                if (shoppingItems.length === 0) {
+                    alert('La lista è vuota, non c\'è niente da esportare.');
+                    return;
                 }
+                
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(shoppingItems, null, 2));
+                const downloadAnchorNode = document.createElement('a');
+                downloadAnchorNode.setAttribute("href", dataStr);
+                downloadAnchorNode.setAttribute("download", jsonFilename);
+                document.body.appendChild(downloadAnchorNode);
+                downloadAnchorNode.click();
+                downloadAnchorNode.remove();
+                
+                showSyncStatus('File JSON esportato con successo. Sostituisci il file nel repository per rendere le modifiche disponibili a tutti.', 'success');
             });
             
             // Functions
-            function loadConfig() {
-                const savedConfig = localStorage.getItem('gistConfig');
+            function loadListFromFile() {
+                loadingIndicator.style.display = 'block';
                 
-                if (savedConfig) {
-                    try {
-                        const config = JSON.parse(savedConfig);
-                        gistId = config.id;
-                        gistFilename = config.filename || 'lista-spesa.json';
-                        
-                        // Check if we have a Gist ID in the URL
-                        const urlParams = new URLSearchParams(window.location.search);
-                        const urlGistId = urlParams.get('gist');
-                        
-                        if (urlGistId) {
-                            // Use the Gist ID from the URL
-                            gistId = urlGistId;
-                            
-                            // Save this new Gist ID for next time
-                            localStorage.setItem('gistConfig', JSON.stringify({
-                                id: gistId,
-                                filename: gistFilename
-                            }));
+                fetch(jsonFilename + '?_=' + new Date().getTime())
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
                         }
-                        
-                        // Set the input values
-                        gistIdInput.value = gistId;
-                        gistFilenameInput.value = gistFilename;
-                        
-                        // If we have a Gist ID, try to load the list
-                        if (gistId) {
-                            loadingIndicator.style.display = 'block';
-                            setupContainer.style.display = 'none';
-                            
-                            fetchListFromGist()
-                                .then(data => {
-                                    shoppingItems = data || [];
-                                    renderShoppingList();
-                                    showApp();
-                                })
-                                .catch(error => {
-                                    console.error('Error loading list from Gist:', error);
-                                    setupContainer.style.display = 'block';
-                                    loadingIndicator.style.display = 'none';
-                                });
-                        }
-                    } catch (e) {
-                        console.error('Error parsing saved config:', e);
-                    }
-                }
+                        return response.json();
+                    })
+                    .then(data => {
+                        shoppingItems = data || [];
+                        renderShoppingList();
+                        saveListToLocalStorage();
+                        loadingIndicator.style.display = 'none';
+                        showSyncStatus('Lista caricata con successo dal file!', 'success');
+                    })
+                    .catch(error => {
+                        console.error('Error loading list from file:', error);
+                        // Try to load from localStorage if file fails
+                        loadFromLocalStorage();
+                        loadingIndicator.style.display = 'none';
+                        showSyncStatus('Errore nel caricamento del file. Utilizzati dati locali.', 'warning');
+                    });
             }
             
-            function showApp() {
-                setupContainer.style.display = 'none';
-                loadingIndicator.style.display = 'none';
-                appContainer.style.display = 'block';
-                updateShareUrl();
+            function loadFromLocalStorage() {
+                const savedItems = localStorage.getItem('shoppingList');
+                if (savedItems) {
+                    try {
+                        shoppingItems = JSON.parse(savedItems);
+                        renderShoppingList();
+                    } catch (e) {
+                        console.error('Error parsing saved items:', e);
+                        shoppingItems = [];
+                    }
+                }
             }
             
             function addNewItem() {
@@ -662,64 +512,6 @@
                 localStorage.setItem('shoppingList', JSON.stringify(shoppingItems));
             }
             
-            function fetchListFromGist() {
-                const url = `https://api.github.com/gists/${gistId}`;
-                
-                return fetch(url)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Network response was not ok');
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        if (data.files && data.files[gistFilename]) {
-                            const content = data.files[gistFilename].content;
-                            try {
-                                return JSON.parse(content);
-                            } catch (e) {
-                                console.error('Error parsing Gist content:', e);
-                                return [];
-                            }
-                        } else {
-                            console.warn('File not found in Gist');
-                            return [];
-                        }
-                    });
-            }
-            
-            function saveListToGist() {
-                const url = `https://api.github.com/gists/${gistId}`;
-                
-                // Prepare the update data
-                const data = {
-                    files: {}
-                };
-                
-                data.files[gistFilename] = {
-                    content: JSON.stringify(shoppingItems)
-                };
-                
-                return fetch(url, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(data)
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                });
-            }
-            
-            function updateShareUrl() {
-                const baseUrl = window.location.href.split('?')[0];
-                shareUrl.value = baseUrl + '?gist=' + gistId;
-            }
-            
             function showSyncStatus(message, type) {
                 syncStatus.textContent = message;
                 syncStatus.className = 'status ' + type;
@@ -727,17 +519,7 @@
                 
                 setTimeout(() => {
                     syncStatus.style.display = 'none';
-                }, 5000);
-            }
-            
-            function showCopyStatus(message, type) {
-                copyStatus.textContent = message;
-                copyStatus.className = 'status ' + (type === 'success' ? 'success' : 'error');
-                copyStatus.style.display = 'block';
-                
-                setTimeout(() => {
-                    copyStatus.style.display = 'none';
-                }, 3000);
+                }, 10000);
             }
         });
     </script>
