@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista della Spesa</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .input-container {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        #item-input {
+            flex-grow: 1;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px 0 0 4px;
+        }
+        #add-button {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 0 4px 4px 0;
+        }
+        #add-button:hover {
+            background-color: #219a52;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background-color: white;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .delete-button {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .delete-button:hover {
+            background-color: #c0392b;
+        }
+        .empty-list {
+            text-align: center;
+            color: #7f8c8d;
+            font-style: italic;
+            padding: 20px;
+        }
+        .item-text {
+            font-size: 16px;
+        }
+        .bulk-input-toggle {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            text-align: center;
+            font-size: 16px;
+        }
+        .bulk-input-toggle:hover {
+            background-color: #2980b9;
+        }
+        .bulk-input-container {
+            display: none;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            background-color: white;
+        }
+        .bulk-input-container.show {
+            display: block;
+        }
+        #bulk-text {
+            width: 100%;
+            min-height: 100px;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+            margin-bottom: 10px;
+        }
+        #process-text-button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+        }
+        #process-text-button:hover {
+            background-color: #2980b9;
+        }
+        .storage-status {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <h1>Lista della Spesa</h1>
+    
+    <button id="bulk-input-toggle" class="bulk-input-toggle">Inserisci testo con lista spesa</button>
+    
+    <div id="bulk-input-container" class="bulk-input-container">
+        <textarea id="bulk-text" placeholder="Incolla qui il testo con gli elementi da acquistare (separati da virgole, righe o punti)..."></textarea>
+        <button id="process-text-button">Estrai elementi dal testo</button>
+    </div>
+    
+    <div class="input-container">
+        <input type="text" id="item-input" placeholder="Aggiungi un prodotto...">
+        <button id="add-button">Aggiungi</button>
+    </div>
+    
+    <ul id="shopping-list">
+        <li class="empty-list">La tua lista della spesa è vuota</li>
+    </ul>
+
+    <div id="storage-status" class="storage-status"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const itemInput = document.getElementById('item-input');
+            const addButton = document.getElementById('add-button');
+            const shoppingList = document.getElementById('shopping-list');
+            const bulkInputToggle = document.getElementById('bulk-input-toggle');
+            const bulkInputContainer = document.getElementById('bulk-input-container');
+            const bulkText = document.getElementById('bulk-text');
+            const processTextButton = document.getElementById('process-text-button');
+            const storageStatus = document.getElementById('storage-status');
+            
+            // Verifica se localStorage è disponibile
+            let localStorageAvailable = false;
+            try {
+                localStorage.setItem('test', 'test');
+                localStorage.removeItem('test');
+                localStorageAvailable = true;
+                storageStatus.textContent = "✓ I tuoi articoli verranno salvati automaticamente";
+            } catch(e) {
+                localStorageAvailable = false;
+                storageStatus.textContent = "⚠️ La tua lista non verrà salvata quando chiudi la pagina";
+            }
+            
+            // Carica la lista salvata, se esiste
+            loadShoppingList();
+            
+            // Toggle bulk input section
+            bulkInputToggle.addEventListener('click', function() {
+                bulkInputContainer.classList.toggle('show');
+                if (bulkInputContainer.classList.contains('show')) {
+                    bulkInputToggle.textContent = 'Nascondi area testo';
+                } else {
+                    bulkInputToggle.textContent = 'Inserisci testo con lista spesa';
+                }
+            });
+            
+            // Process bulk text
+            processTextButton.addEventListener('click', function() {
+                const text = bulkText.value.trim();
+                if (text !== '') {
+                    // Divide il testo in elementi potenziali
+                    // Cerca delimitatori comuni: virgole, punti, righe nuove, trattini, ecc.
+                    const items = text.split(/[,\.\n;-]/)
+                        .map(item => item.trim())
+                        .filter(item => item !== '');
+                    
+                    if (items.length > 0) {
+                        // Rimuovi il messaggio "lista vuota" se presente
+                        const emptyNotice = document.querySelector('.empty-list');
+                        if (emptyNotice) {
+                            emptyNotice.remove();
+                        }
+                        
+                        // Aggiungi ciascun elemento alla lista
+                        items.forEach(itemText => {
+                            addItemToList(itemText);
+                        });
+                        
+                        // Salva la lista
+                        saveShoppingList();
+                        
+                        // Pulisci l'area di testo
+                        bulkText.value = '';
+                        
+                        // Nascondi l'area di bulk input dopo l'elaborazione
+                        bulkInputContainer.classList.remove('show');
+                        bulkInputToggle.textContent = 'Inserisci testo con lista spesa';
+                    }
+                }
+            });
+            
+            // Aggiungi un nuovo elemento
+            addButton.addEventListener('click', function() {
+                const itemText = itemInput.value.trim();
+                if (itemText !== '') {
+                    // Rimuovi il messaggio "lista vuota" se presente
+                    const emptyNotice = document.querySelector('.empty-list');
+                    if (emptyNotice) {
+                        emptyNotice.remove();
+                    }
+                    
+                    addItemToList(itemText);
+                    
+                    // Salva la lista
+                    saveShoppingList();
+                    
+                    // Pulisci il campo di input
+                    itemInput.value = '';
+                    
+                    // Rimetti il focus sull'input
+                    itemInput.focus();
+                }
+            });
+            
+            // Permetti di aggiungere un elemento premendo Enter
+            itemInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    const itemText = itemInput.value.trim();
+                    if (itemText !== '') {
+                        // Rimuovi il messaggio "lista vuota" se presente
+                        const emptyNotice = document.querySelector('.empty-list');
+                        if (emptyNotice) {
+                            emptyNotice.remove();
+                        }
+                        
+                        addItemToList(itemText);
+                        
+                        // Salva la lista
+                        saveShoppingList();
+                        
+                        // Pulisci il campo di input
+                        itemInput.value = '';
+                    }
+                }
+            });
+            
+            // Funzione per aggiungere un elemento alla lista
+            function addItemToList(itemText) {
+                // Crea il nuovo elemento lista
+                const li = document.createElement('li');
+                
+                // Aggiungi il testo dell'elemento
+                const span = document.createElement('span');
+                span.textContent = itemText;
+                span.className = 'item-text';
+                li.appendChild(span);
+                
+                // Aggiungi il pulsante per eliminare
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Nel carrello';
+                deleteButton.className = 'delete-button';
+                deleteButton.addEventListener('click', function() {
+                    li.remove();
+                    
+                    // Mostra il messaggio "lista vuota" se non ci sono più elementi
+                    if (shoppingList.children.length === 0) {
+                        const emptyLi = document.createElement('li');
+                        emptyLi.textContent = 'La tua lista della spesa è vuota';
+                        emptyLi.className = 'empty-list';
+                        shoppingList.appendChild(emptyLi);
+                    }
+                    
+                    // Salva la lista aggiornata
+                    saveShoppingList();
+                });
+                
+                li.appendChild(deleteButton);
+                
+                // Aggiungi l'elemento alla lista
+                shoppingList.appendChild(li);
+            }
+            
+            // Salva la lista nel localStorage
+            function saveShoppingList() {
+                if (!localStorageAvailable) return;
+                
+                const items = [];
+                document.querySelectorAll('#shopping-list li:not(.empty-list)').forEach(function(li) {
+                    items.push(li.querySelector('.item-text').textContent);
+                });
+                
+                try {
+                    localStorage.setItem('shoppingList', JSON.stringify(items));
+                } catch(e) {
+                    console.error('Errore nel salvataggio della lista:', e);
+                }
+            }
+            
+            // Carica la lista dal localStorage
+            function loadShoppingList() {
+                if (!localStorageAvailable) return;
+                
+                try {
+                    const savedItems = localStorage.getItem('shoppingList');
+                    
+                    if (savedItems && JSON.parse(savedItems).length > 0) {
+                        const items = JSON.parse(savedItems);
+                        
+                        // Rimuovi il messaggio "lista vuota"
+                        shoppingList.innerHTML = '';
+                        
+                        // Aggiungi ogni elemento salvato
+                        items.forEach(function(itemText) {
+                            addItemToList(itemText);
+                        });
+                    }
+                } catch(e) {
+                    console.error('Errore nel caricamento della lista:', e);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
