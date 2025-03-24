@@ -138,6 +138,17 @@
             margin-bottom: 15px;
         }
         
+        .refresh-button {
+            background-color: #f39c12;
+            color: white;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .refresh-button:hover {
+            background-color: #d35400;
+        }
+        
         /* Input Containers */
         .input-container {
             display: flex;
@@ -266,6 +277,10 @@
     <div class="container">
         <h1>Lista della Spesa Condivisa</h1>
         
+        <div id="refresh-container" style="display: none;">
+            <button id="refresh-button" class="refresh-button fullwidth">Aggiorna lista</button>
+        </div>
+        
         <div class="input-container">
             <input type="text" id="item-input" placeholder="Aggiungi un prodotto...">
             <button id="add-button" class="primary-button">Aggiungi</button>
@@ -286,14 +301,14 @@
         
         <div class="card">
             <h2>Condividi la tua lista</h2>
-            <p class="hint">Usa questo link per condividere la lista con altri o aprirla su un altro dispositivo:</p>
+            <p class="hint">Questo link rimane sempre valido anche quando aggiorni la lista:</p>
             <input type="text" id="share-url" readonly>
             <button id="copy-link" class="secondary-button fullwidth">Copia link</button>
             <div id="copy-status" class="status" style="display:none;"></div>
         </div>
         
         <div class="card">
-            <h2>Importa lista esportata</h2>
+            <h2>Importa/Esporta</h2>
             <p class="hint">Esporta la tua lista in un file per salvarla:</p>
             <button id="export-button" class="secondary-button fullwidth">Esporta come file</button>
             <p class="hint" style="margin-top: 15px;">Importa da un file precedentemente esportato:</p>
@@ -323,11 +338,15 @@
             const exportButton = document.getElementById('export-button');
             const importButton = document.getElementById('import-button');
             const importFile = document.getElementById('import-file');
+            const refreshContainer = document.getElementById('refresh-container');
+            const refreshButton = document.getElementById('refresh-button');
             
-            // Initialize shopping list
+            // Initialize variables
             let shoppingItems = [];
+            let listId = '';
+            let isSharedList = false;
             
-            // Load items from URL hash if present, otherwise from localStorage
+            // Initialize list
             initializeList();
             
             // Add item when clicking the Add button
@@ -338,6 +357,13 @@
                 if (e.key === 'Enter') {
                     addNewItem();
                 }
+            });
+            
+            // Refresh button to get the latest list
+            refreshButton.addEventListener('click', function() {
+                loadListFromLocalStorage(listId);
+                renderShoppingList();
+                showCopyStatus('Lista aggiornata!', 'success');
             });
             
             // Toggle bulk input container
@@ -405,7 +431,12 @@
                     return;
                 }
                 
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(shoppingItems));
+                const data = {
+                    id: listId,
+                    items: shoppingItems
+                };
+                
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
                 const downloadAnchorNode = document.createElement('a');
                 downloadAnchorNode.setAttribute("href", dataStr);
                 downloadAnchorNode.setAttribute("download", "lista_spesa.json");
@@ -426,11 +457,16 @@
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     try {
-                        const items = JSON.parse(e.target.result);
+                        const data = JSON.parse(e.target.result);
                         
-                        if (Array.isArray(items) && items.length > 0) {
+                        if (data && data.items && Array.isArray(data.items) && data.items.length > 0) {
                             if (confirm('Vuoi sostituire la lista attuale con quella importata?')) {
-                                shoppingItems = items;
+                                if (data.id) {
+                                    listId = data.id;
+                                    updateShareUrl();
+                                }
+                                
+                                shoppingItems = data.items;
                                 renderShoppingList();
                                 saveList();
                                 alert('Lista importata con successo!');
@@ -448,38 +484,54 @@
                 importFile.value = '';
             });
             
-            // Update URL hash when list changes
-            window.addEventListener('hashchange', function() {
-                // Only update if the hash has actually changed
-                const hashData = getListFromHash();
-                if (hashData && hashData.length > 0 && JSON.stringify(hashData) !== JSON.stringify(shoppingItems)) {
-                    shoppingItems = hashData;
-                    renderShoppingList();
-                    saveListToLocalStorage(); // Still save to localStorage for fallback
-                }
-            });
-            
             // Functions
             function initializeList() {
-                // First try to get list from URL hash
-                const hashData = getListFromHash();
-                if (hashData && hashData.length > 0) {
-                    shoppingItems = hashData;
+                // Check if we have a list ID in the URL
+                const urlParams = new URLSearchParams(window.location.search);
+                const urlListId = urlParams.get('list');
+                
+                if (urlListId) {
+                    // We're viewing a shared list
+                    listId = urlListId;
+                    isSharedList = true;
+                    refreshContainer.style.display = 'block';
+                    
+                    // Load the list from localStorage if it exists
+                    loadListFromLocalStorage(listId);
                 } else {
-                    // Fallback to localStorage if no hash data
-                    const savedItems = localStorage.getItem('shoppingList');
-                    if (savedItems) {
-                        try {
-                            shoppingItems = JSON.parse(savedItems);
-                        } catch (e) {
-                            console.error('Error parsing saved items:', e);
-                            shoppingItems = [];
-                        }
+                    // Create a new list or load saved list
+                    const savedListId = localStorage.getItem('currentListId');
+                    
+                    if (savedListId) {
+                        listId = savedListId;
+                        loadListFromLocalStorage(listId);
+                    } else {
+                        // Generate a new list ID
+                        listId = generateListId();
+                        localStorage.setItem('currentListId', listId);
                     }
                 }
                 
                 renderShoppingList();
                 updateShareUrl();
+            }
+            
+            function loadListFromLocalStorage(id) {
+                const savedItems = localStorage.getItem('list_' + id);
+                if (savedItems) {
+                    try {
+                        shoppingItems = JSON.parse(savedItems);
+                    } catch (e) {
+                        console.error('Error parsing saved items:', e);
+                        shoppingItems = [];
+                    }
+                } else {
+                    shoppingItems = [];
+                }
+            }
+            
+            function generateListId() {
+                return Math.random().toString(36).substring(2, 8).toUpperCase();
             }
             
             function addNewItem() {
@@ -536,38 +588,13 @@
             }
             
             function saveList() {
-                saveListToLocalStorage();
-                updateShareUrl();
-            }
-            
-            function saveListToLocalStorage() {
-                try {
-                    localStorage.setItem('shoppingList', JSON.stringify(shoppingItems));
-                } catch (e) {
-                    console.error('Error saving to localStorage:', e);
-                }
-            }
-            
-            function getListFromHash() {
-                if (window.location.hash && window.location.hash.length > 1) {
-                    try {
-                        // The hash starts with #, so slice it off
-                        const encoded = window.location.hash.slice(1);
-                        const decoded = atob(encoded);
-                        return JSON.parse(decoded);
-                    } catch (e) {
-                        console.error('Error parsing hash data:', e);
-                        return null;
-                    }
-                }
-                return null;
+                localStorage.setItem('list_' + listId, JSON.stringify(shoppingItems));
+                localStorage.setItem('currentListId', listId);
             }
             
             function updateShareUrl() {
-                // Create a base64 encoded version of the list
-                const encoded = btoa(JSON.stringify(shoppingItems));
-                const url = window.location.origin + window.location.pathname + '#' + encoded;
-                shareUrl.value = url;
+                const baseUrl = window.location.href.split('?')[0];
+                shareUrl.value = baseUrl + '?list=' + listId;
             }
             
             function showCopyStatus(message, type) {
