@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lista della Spesa</title>
+    <title>Lista della Spesa Condivisa</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -143,60 +143,184 @@
         .clear-all:hover {
             background-color: #7f8c8d;
         }
-        .export-import {
-            margin-top: 20px;
-            display: flex;
-            gap: 10px;
+        .list-code-container {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #ecf0f1;
+            border-radius: 4px;
         }
-        .export-import button {
-            flex: 1;
+        .list-info {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        #list-code {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            font-family: monospace;
+            letter-spacing: 2px;
+        }
+        #copy-code {
             background-color: #9b59b6;
             color: white;
             border: none;
-            padding: 8px 12px;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
             font-size: 14px;
+        }
+        #copy-code:hover {
+            background-color: #8e44ad;
+        }
+        .join-container {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #ecf0f1;
+            border-radius: 4px;
+        }
+        .join-container h2 {
+            margin-top: 0;
+            font-size: 18px;
+        }
+        .join-input {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        #join-code-input {
+            flex-grow: 1;
+            padding: 8px 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px 0 0 4px;
+        }
+        #join-button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 0 4px 4px 0;
+        }
+        #join-button:hover {
+            background-color: #2980b9;
+        }
+        .loading {
+            text-align: center;
+            margin: 20px 0;
+            font-style: italic;
+            color: #7f8c8d;
+        }
+        .sync-status {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        .online {
+            color: #27ae60;
+        }
+        .offline {
+            color: #e74c3c;
+        }
+        #create-new-list {
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            font-size: 16px;
+            width: 100%;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        #create-new-list:hover {
+            background-color: #27ae60;
+        }
+        .auth-container {
+            margin-top: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        #auth-button {
+            background-color: #e67e22;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
             border-radius: 4px;
             cursor: pointer;
         }
-        .export-import button:hover {
-            background-color: #8e44ad;
+        #auth-button:hover {
+            background-color: #d35400;
         }
-        #import-input {
-            display: none;
+        #user-display {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #2c3e50;
         }
     </style>
 </head>
 <body>
-    <h1>Lista della Spesa</h1>
+    <h1>Lista della Spesa Condivisa</h1>
     
-    <button id="bulk-input-toggle" class="bulk-input-toggle">Inserisci testo con lista spesa</button>
-    
-    <div id="bulk-input-container" class="bulk-input-container">
-        <textarea id="bulk-text" placeholder="Incolla qui il testo con gli elementi da acquistare (separati da virgole, righe o punti)..."></textarea>
-        <button id="process-text-button">Estrai elementi dal testo</button>
+    <div class="auth-container">
+        <button id="auth-button">Accedi con Google</button>
+        <div id="user-display"></div>
     </div>
     
-    <div class="input-container">
-        <input type="text" id="item-input" placeholder="Aggiungi un prodotto...">
-        <button id="add-button">Aggiungi</button>
+    <div class="list-code-container">
+        <h2>Codice della tua lista:</h2>
+        <div class="list-info">
+            <span id="list-code">...</span>
+            <button id="copy-code">Copia</button>
+        </div>
+        <p>Condividi questo codice con la tua famiglia per usare la stessa lista su più dispositivi</p>
     </div>
     
-    <ul id="shopping-list">
-        <li class="empty-list">La tua lista della spesa è vuota</li>
-    </ul>
-    
-    <button id="clear-all" class="clear-all">Cancella tutta la lista</button>
-    
-    <div class="export-import">
-        <button id="export-button">Esporta lista</button>
-        <button id="import-button">Importa lista</button>
-        <input type="file" id="import-input" accept=".json">
+    <div class="join-container">
+        <h2>Unisciti a una lista esistente</h2>
+        <div class="join-input">
+            <input type="text" id="join-code-input" placeholder="Inserisci codice lista...">
+            <button id="join-button">Unisciti</button>
+        </div>
+        <button id="create-new-list">Crea nuova lista</button>
     </div>
     
-    <div id="storage-status" class="storage-status"></div>
+    <div id="loading" class="loading">Caricamento...</div>
+    
+    <div id="app-container" style="display: none;">
+        <button id="bulk-input-toggle" class="bulk-input-toggle">Inserisci testo con lista spesa</button>
+        
+        <div id="bulk-input-container" class="bulk-input-container">
+            <textarea id="bulk-text" placeholder="Incolla qui il testo con gli elementi da acquistare (separati da virgole, righe o punti)..."></textarea>
+            <button id="process-text-button">Estrai elementi dal testo</button>
+        </div>
+        
+        <div class="input-container">
+            <input type="text" id="item-input" placeholder="Aggiungi un prodotto...">
+            <button id="add-button">Aggiungi</button>
+        </div>
+        
+        <ul id="shopping-list">
+            <li class="empty-list">La tua lista della spesa è vuota</li>
+        </ul>
+        
+        <button id="clear-all" class="clear-all">Cancella tutta la lista</button>
+        
+        <div id="sync-status" class="sync-status"></div>
+    </div>
 
+    <!-- Firebase -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.0/firebase-firestore-compat.js"></script>
+    
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            const appContainer = document.getElementById('app-container');
+            const loadingElement = document.getElementById('loading');
             const itemInput = document.getElementById('item-input');
             const addButton = document.getElementById('add-button');
             const shoppingList = document.getElementById('shopping-list');
@@ -204,28 +328,296 @@
             const bulkInputContainer = document.getElementById('bulk-input-container');
             const bulkText = document.getElementById('bulk-text');
             const processTextButton = document.getElementById('process-text-button');
-            const storageStatus = document.getElementById('storage-status');
             const clearAllButton = document.getElementById('clear-all');
-            const exportButton = document.getElementById('export-button');
-            const importButton = document.getElementById('import-button');
-            const importInput = document.getElementById('import-input');
+            const syncStatus = document.getElementById('sync-status');
+            const listCodeElement = document.getElementById('list-code');
+            const copyCodeButton = document.getElementById('copy-code');
+            const joinCodeInput = document.getElementById('join-code-input');
+            const joinButton = document.getElementById('join-button');
+            const createNewListButton = document.getElementById('create-new-list');
+            const authButton = document.getElementById('auth-button');
+            const userDisplay = document.getElementById('user-display');
             
-            // Verifica se localStorage è disponibile
-            let localStorageAvailable = false;
-            try {
-                localStorage.setItem('test', 'test');
-                localStorage.removeItem('test');
-                localStorageAvailable = true;
-                storageStatus.textContent = "✓ I tuoi articoli vengono salvati automaticamente";
-                storageStatus.style.color = "#27ae60";
-            } catch(e) {
-                localStorageAvailable = false;
-                storageStatus.textContent = "⚠️ La tua lista non verrà salvata quando chiudi la pagina";
-                storageStatus.style.color = "#e74c3c";
+            // Firebase configuration
+            // NOTA: Devi sostituire questi valori con quelli della tua app Firebase
+            const firebaseConfig = {
+                apiKey: "INSERISCI_LA_TUA_API_KEY",
+                authDomain: "TUAAPP.firebaseapp.com",
+                projectId: "TUAAPP",
+                storageBucket: "TUAAPP.appspot.com",
+                messagingSenderId: "1234567890",
+                appId: "1:1234567890:web:abcdef1234567890"
+            };
+            
+            // Inizializza Firebase
+            firebase.initializeApp(firebaseConfig);
+            const db = firebase.firestore();
+            const auth = firebase.auth();
+            
+            let currentUser = null;
+            let currentListId = null;
+            let unsubscribe = null;
+            
+            // Controlla lo stato della connessione
+            window.addEventListener('online', updateOnlineStatus);
+            window.addEventListener('offline', updateOnlineStatus);
+            
+            function updateOnlineStatus() {
+                if (navigator.onLine) {
+                    syncStatus.textContent = "✓ Sincronizzazione attiva";
+                    syncStatus.className = "sync-status online";
+                } else {
+                    syncStatus.textContent = "✗ Offline - Le modifiche verranno sincronizzate quando tornerai online";
+                    syncStatus.className = "sync-status offline";
+                }
             }
             
-            // Carica la lista salvata, se esiste
-            loadShoppingList();
+            // Autenticazione
+            authButton.addEventListener('click', function() {
+                if (currentUser) {
+                    // Logout
+                    auth.signOut().then(() => {
+                        currentUser = null;
+                        updateAuthUI();
+                    }).catch(error => {
+                        console.error("Errore durante il logout:", error);
+                    });
+                } else {
+                    // Login
+                    const provider = new firebase.auth.GoogleAuthProvider();
+                    auth.signInWithPopup(provider).catch(error => {
+                        console.error("Errore durante l'autenticazione:", error);
+                    });
+                }
+            });
+            
+            auth.onAuthStateChanged(user => {
+                currentUser = user;
+                updateAuthUI();
+                if (user) {
+                    // Cerca lista esistente dell'utente
+                    loadUserList();
+                } else {
+                    // Disconnetti listener
+                    if (unsubscribe) {
+                        unsubscribe();
+                        unsubscribe = null;
+                    }
+                    appContainer.style.display = 'none';
+                    loadingElement.style.display = 'block';
+                }
+            });
+            
+            function updateAuthUI() {
+                if (currentUser) {
+                    authButton.textContent = "Esci";
+                    userDisplay.textContent = `Connesso come: ${currentUser.displayName || currentUser.email}`;
+                } else {
+                    authButton.textContent = "Accedi con Google";
+                    userDisplay.textContent = "";
+                }
+            }
+            
+            // Carica la lista dell'utente
+            function loadUserList() {
+                db.collection('userLists')
+                    .where('userId', '==', currentUser.uid)
+                    .limit(1)
+                    .get()
+                    .then(snapshot => {
+                        if (!snapshot.empty) {
+                            // Usa la prima lista trovata
+                            const listData = snapshot.docs[0].data();
+                            currentListId = listData.listId;
+                            subscribeToList(currentListId);
+                        } else {
+                            // Crea una nuova lista
+                            createNewList();
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Errore nel recupero della lista:", error);
+                    });
+            }
+            
+            // Crea una nuova lista
+            function createNewList() {
+                // Genera un ID lista di 6 caratteri casuali
+                const listId = Math.random().toString(36).substring(2, 8).toUpperCase();
+                currentListId = listId;
+                
+                // Salva il riferimento alla lista per l'utente
+                db.collection('userLists').add({
+                    userId: currentUser.uid,
+                    listId: listId,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                })
+                .then(() => {
+                    // Inizializza la lista vuota
+                    return db.collection('shoppingLists').doc(listId).set({
+                        items: [],
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                })
+                .then(() => {
+                    subscribeToList(listId);
+                })
+                .catch(error => {
+                    console.error("Errore nella creazione della lista:", error);
+                });
+            }
+            
+            // Unisciti a una lista esistente
+            joinButton.addEventListener('click', function() {
+                const code = joinCodeInput.value.trim().toUpperCase();
+                if (code.length === 6) {
+                    // Verifica se la lista esiste
+                    db.collection('shoppingLists').doc(code).get()
+                        .then(doc => {
+                            if (doc.exists) {
+                                // Aggiorna il riferimento della lista per l'utente
+                                db.collection('userLists')
+                                    .where('userId', '==', currentUser.uid)
+                                    .get()
+                                    .then(snapshot => {
+                                        if (!snapshot.empty) {
+                                            // Aggiorna il riferimento esistente
+                                            snapshot.docs[0].ref.update({
+                                                listId: code,
+                                                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                                            });
+                                        } else {
+                                            // Crea un nuovo riferimento
+                                            db.collection('userLists').add({
+                                                userId: currentUser.uid,
+                                                listId: code,
+                                                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                                            });
+                                        }
+                                        currentListId = code;
+                                        subscribeToList(code);
+                                        joinCodeInput.value = '';
+                                    });
+                            } else {
+                                alert("Codice lista non valido. Verifica e riprova.");
+                            }
+                        })
+                        .catch(error => {
+                            console.error("Errore nell'accesso alla lista:", error);
+                        });
+                } else {
+                    alert("Inserisci un codice lista valido (6 caratteri)");
+                }
+            });
+            
+            // Crea una nuova lista
+            createNewListButton.addEventListener('click', function() {
+                if (confirm("Vuoi davvero creare una nuova lista? Non utilizzerai più quella corrente.")) {
+                    createNewList();
+                }
+            });
+            
+            // Copia codice lista
+            copyCodeButton.addEventListener('click', function() {
+                navigator.clipboard.writeText(currentListId)
+                    .then(() => {
+                        const originalText = copyCodeButton.textContent;
+                        copyCodeButton.textContent = "Copiato!";
+                        setTimeout(() => {
+                            copyCodeButton.textContent = originalText;
+                        }, 2000);
+                    })
+                    .catch(err => {
+                        console.error('Errore nella copia: ', err);
+                    });
+            });
+            
+            // Iscrizione agli aggiornamenti della lista
+            function subscribeToList(listId) {
+                // Disattiva eventuali sottoscrizioni precedenti
+                if (unsubscribe) {
+                    unsubscribe();
+                }
+                
+                listCodeElement.textContent = listId;
+                
+                // Sottoscrivi agli aggiornamenti
+                unsubscribe = db.collection('shoppingLists').doc(listId)
+                    .onSnapshot(doc => {
+                        if (doc.exists) {
+                            const data = doc.data();
+                            renderShoppingList(data.items || []);
+                            loadingElement.style.display = 'none';
+                            appContainer.style.display = 'block';
+                        }
+                    }, error => {
+                        console.error("Errore nella sottoscrizione:", error);
+                    });
+                
+                updateOnlineStatus();
+            }
+            
+            // Renderizza la lista della spesa
+            function renderShoppingList(items) {
+                shoppingList.innerHTML = '';
+                
+                if (items.length === 0) {
+                    const emptyLi = document.createElement('li');
+                    emptyLi.textContent = 'La tua lista della spesa è vuota';
+                    emptyLi.className = 'empty-list';
+                    shoppingList.appendChild(emptyLi);
+                    return;
+                }
+                
+                items.forEach(itemText => {
+                    const li = document.createElement('li');
+                    
+                    const span = document.createElement('span');
+                    span.textContent = itemText;
+                    span.className = 'item-text';
+                    li.appendChild(span);
+                    
+                    const deleteButton = document.createElement('button');
+                    deleteButton.textContent = 'Nel carrello';
+                    deleteButton.className = 'delete-button';
+                    deleteButton.addEventListener('click', function() {
+                        removeItemFromList(itemText);
+                    });
+                    
+                    li.appendChild(deleteButton);
+                    shoppingList.appendChild(li);
+                });
+            }
+            
+            // Aggiorna la lista sul database
+            function updateShoppingList(items) {
+                if (!currentUser || !currentListId) return;
+                
+                db.collection('shoppingLists').doc(currentListId).update({
+                    items: items,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }).catch(error => {
+                    console.error("Errore nell'aggiornamento della lista:", error);
+                });
+            }
+            
+            // Rimuovi un elemento dalla lista
+            function removeItemFromList(itemText) {
+                if (!currentUser || !currentListId) return;
+                
+                db.collection('shoppingLists').doc(currentListId).get()
+                    .then(doc => {
+                        if (doc.exists) {
+                            const data = doc.data();
+                            const items = data.items || [];
+                            const updatedItems = items.filter(item => item !== itemText);
+                            updateShoppingList(updatedItems);
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Errore nella rimozione dell'elemento:", error);
+                    });
+            }
             
             // Toggle bulk input section
             bulkInputToggle.addEventListener('click', function() {
@@ -240,34 +632,36 @@
             // Process bulk text
             processTextButton.addEventListener('click', function() {
                 const text = bulkText.value.trim();
-                if (text !== '') {
+                if (text !== '' && currentUser && currentListId) {
                     // Divide il testo in elementi potenziali
-                    // Cerca delimitatori comuni: virgole, punti, righe nuove, trattini, ecc.
                     const items = text.split(/[,\.\n;-]/)
                         .map(item => item.trim())
                         .filter(item => item !== '');
                     
                     if (items.length > 0) {
-                        // Rimuovi il messaggio "lista vuota" se presente
-                        const emptyNotice = document.querySelector('.empty-list');
-                        if (emptyNotice) {
-                            emptyNotice.remove();
-                        }
-                        
-                        // Aggiungi ciascun elemento alla lista
-                        items.forEach(itemText => {
-                            addItemToList(itemText);
-                        });
-                        
-                        // Salva la lista
-                        saveShoppingList();
-                        
-                        // Pulisci l'area di testo
-                        bulkText.value = '';
-                        
-                        // Nascondi l'area di bulk input dopo l'elaborazione
-                        bulkInputContainer.classList.remove('show');
-                        bulkInputToggle.textContent = 'Inserisci testo con lista spesa';
+                        db.collection('shoppingLists').doc(currentListId).get()
+                            .then(doc => {
+                                if (doc.exists) {
+                                    const data = doc.data();
+                                    const currentItems = data.items || [];
+                                    
+                                    // Aggiungi nuovi elementi evitando duplicati
+                                    const uniqueNewItems = items.filter(item => !currentItems.includes(item));
+                                    const updatedItems = [...currentItems, ...uniqueNewItems];
+                                    
+                                    updateShoppingList(updatedItems);
+                                    
+                                    // Pulisci l'area di testo
+                                    bulkText.value = '';
+                                    
+                                    // Nascondi l'area di bulk input dopo l'elaborazione
+                                    bulkInputContainer.classList.remove('show');
+                                    bulkInputToggle.textContent = 'Inserisci testo con lista spesa';
+                                }
+                            })
+                            .catch(error => {
+                                console.error("Errore nell'elaborazione del testo:", error);
+                            });
                     }
                 }
             });
@@ -282,192 +676,43 @@
                 }
             });
             
-            // Funzione per aggiungere un nuovo elemento dalla casella di input
+            // Funzione per aggiungere un nuovo elemento
             function addNewItem() {
                 const itemText = itemInput.value.trim();
-                if (itemText !== '') {
-                    // Rimuovi il messaggio "lista vuota" se presente
-                    const emptyNotice = document.querySelector('.empty-list');
-                    if (emptyNotice) {
-                        emptyNotice.remove();
-                    }
-                    
-                    addItemToList(itemText);
-                    
-                    // Salva la lista
-                    saveShoppingList();
-                    
-                    // Pulisci il campo di input
-                    itemInput.value = '';
-                    
-                    // Rimetti il focus sull'input
-                    itemInput.focus();
+                if (itemText !== '' && currentUser && currentListId) {
+                    db.collection('shoppingLists').doc(currentListId).get()
+                        .then(doc => {
+                            if (doc.exists) {
+                                const data = doc.data();
+                                const items = data.items || [];
+                                
+                                // Aggiungi solo se non è già presente
+                                if (!items.includes(itemText)) {
+                                    items.push(itemText);
+                                    updateShoppingList(items);
+                                }
+                                
+                                // Pulisci il campo di input
+                                itemInput.value = '';
+                                
+                                // Rimetti il focus sull'input
+                                itemInput.focus();
+                            }
+                        })
+                        .catch(error => {
+                            console.error("Errore nell'aggiunta dell'elemento:", error);
+                        });
                 }
-            }
-            
-            // Funzione per aggiungere un elemento alla lista
-            function addItemToList(itemText) {
-                // Crea il nuovo elemento lista
-                const li = document.createElement('li');
-                
-                // Aggiungi il testo dell'elemento
-                const span = document.createElement('span');
-                span.textContent = itemText;
-                span.className = 'item-text';
-                li.appendChild(span);
-                
-                // Aggiungi il pulsante per eliminare
-                const deleteButton = document.createElement('button');
-                deleteButton.textContent = 'Nel carrello';
-                deleteButton.className = 'delete-button';
-                deleteButton.addEventListener('click', function() {
-                    li.remove();
-                    
-                    // Mostra il messaggio "lista vuota" se non ci sono più elementi
-                    if (shoppingList.children.length === 0) {
-                        const emptyLi = document.createElement('li');
-                        emptyLi.textContent = 'La tua lista della spesa è vuota';
-                        emptyLi.className = 'empty-list';
-                        shoppingList.appendChild(emptyLi);
-                    }
-                    
-                    // Salva la lista aggiornata
-                    saveShoppingList();
-                });
-                
-                li.appendChild(deleteButton);
-                
-                // Aggiungi l'elemento alla lista
-                shoppingList.appendChild(li);
             }
             
             // Cancella tutta la lista
             clearAllButton.addEventListener('click', function() {
-                // Chiedi conferma prima di cancellare
-                if (confirm('Sei sicuro di voler cancellare tutta la lista?')) {
-                    // Svuota la lista
-                    shoppingList.innerHTML = '';
-                    
-                    // Aggiungi il messaggio "lista vuota"
-                    const emptyLi = document.createElement('li');
-                    emptyLi.textContent = 'La tua lista della spesa è vuota';
-                    emptyLi.className = 'empty-list';
-                    shoppingList.appendChild(emptyLi);
-                    
-                    // Salva la lista vuota
-                    saveShoppingList();
-                }
-            });
-            
-            // Esporta la lista come file JSON
-            exportButton.addEventListener('click', function() {
-                const items = [];
-                document.querySelectorAll('#shopping-list li:not(.empty-list)').forEach(function(li) {
-                    items.push(li.querySelector('.item-text').textContent);
-                });
-                
-                if (items.length === 0) {
-                    alert('La lista è vuota, non c\'è niente da esportare.');
-                    return;
-                }
-                
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(items));
-                const downloadAnchorNode = document.createElement('a');
-                downloadAnchorNode.setAttribute("href", dataStr);
-                downloadAnchorNode.setAttribute("download", "lista_spesa.json");
-                document.body.appendChild(downloadAnchorNode);
-                downloadAnchorNode.click();
-                downloadAnchorNode.remove();
-            });
-            
-            // Importa la lista da un file JSON
-            importButton.addEventListener('click', function() {
-                importInput.click();
-            });
-            
-            importInput.addEventListener('change', function(event) {
-                const file = event.target.files[0];
-                if (!file) return;
-                
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    try {
-                        const items = JSON.parse(e.target.result);
-                        
-                        if (Array.isArray(items) && items.length > 0) {
-                            // Rimuovi il messaggio "lista vuota" se presente
-                            const emptyNotice = document.querySelector('.empty-list');
-                            if (emptyNotice) {
-                                emptyNotice.remove();
-                            }
-                            
-                            // Rimuovi gli elementi esistenti
-                            shoppingList.innerHTML = '';
-                            
-                            // Aggiungi gli elementi importati
-                            items.forEach(itemText => {
-                                addItemToList(itemText);
-                            });
-                            
-                            // Salva la lista
-                            saveShoppingList();
-                            
-                            alert('Lista importata con successo!');
-                        } else {
-                            alert('Il file non contiene elementi validi.');
-                        }
-                    } catch (error) {
-                        alert('Errore durante l\'importazione del file. Assicurati che sia un file JSON valido.');
-                        console.error('Errore di importazione:', error);
+                if (currentUser && currentListId) {
+                    if (confirm('Sei sicuro di voler cancellare tutta la lista?')) {
+                        updateShoppingList([]);
                     }
-                };
-                reader.readAsText(file);
-                // Resetta l'input file per consentire di selezionare lo stesso file più volte
-                importInput.value = '';
+                }
             });
-            
-            // Salva la lista nel localStorage
-            function saveShoppingList() {
-                if (!localStorageAvailable) return;
-                
-                const items = [];
-                document.querySelectorAll('#shopping-list li:not(.empty-list)').forEach(function(li) {
-                    items.push(li.querySelector('.item-text').textContent);
-                });
-                
-                try {
-                    localStorage.setItem('shoppingList', JSON.stringify(items));
-                } catch(e) {
-                    console.error('Errore nel salvataggio della lista:', e);
-                    storageStatus.textContent = "⚠️ Errore nel salvataggio della lista";
-                    storageStatus.style.color = "#e74c3c";
-                }
-            }
-            
-            // Carica la lista dal localStorage
-            function loadShoppingList() {
-                if (!localStorageAvailable) return;
-                
-                try {
-                    const savedItems = localStorage.getItem('shoppingList');
-                    
-                    if (savedItems && JSON.parse(savedItems).length > 0) {
-                        const items = JSON.parse(savedItems);
-                        
-                        // Rimuovi il messaggio "lista vuota"
-                        shoppingList.innerHTML = '';
-                        
-                        // Aggiungi ogni elemento salvato
-                        items.forEach(function(itemText) {
-                            addItemToList(itemText);
-                        });
-                    }
-                } catch(e) {
-                    console.error('Errore nel caricamento della lista:', e);
-                    storageStatus.textContent = "⚠️ Errore nel caricamento della lista";
-                    storageStatus.style.color = "#e74c3c";
-                }
-            }
         });
     </script>
 </body>
