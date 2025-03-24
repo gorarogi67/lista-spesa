@@ -128,7 +128,41 @@
             margin-top: 20px;
             font-size: 14px;
             color: #7f8c8d;
-            font-style: italic;
+        }
+        .clear-all {
+            background-color: #95a5a6;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            font-size: 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 15px;
+            width: 100%;
+        }
+        .clear-all:hover {
+            background-color: #7f8c8d;
+        }
+        .export-import {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .export-import button {
+            flex: 1;
+            background-color: #9b59b6;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            font-size: 14px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .export-import button:hover {
+            background-color: #8e44ad;
+        }
+        #import-input {
+            display: none;
         }
     </style>
 </head>
@@ -150,7 +184,15 @@
     <ul id="shopping-list">
         <li class="empty-list">La tua lista della spesa è vuota</li>
     </ul>
-
+    
+    <button id="clear-all" class="clear-all">Cancella tutta la lista</button>
+    
+    <div class="export-import">
+        <button id="export-button">Esporta lista</button>
+        <button id="import-button">Importa lista</button>
+        <input type="file" id="import-input" accept=".json">
+    </div>
+    
     <div id="storage-status" class="storage-status"></div>
 
     <script>
@@ -163,6 +205,10 @@
             const bulkText = document.getElementById('bulk-text');
             const processTextButton = document.getElementById('process-text-button');
             const storageStatus = document.getElementById('storage-status');
+            const clearAllButton = document.getElementById('clear-all');
+            const exportButton = document.getElementById('export-button');
+            const importButton = document.getElementById('import-button');
+            const importInput = document.getElementById('import-input');
             
             // Verifica se localStorage è disponibile
             let localStorageAvailable = false;
@@ -170,10 +216,12 @@
                 localStorage.setItem('test', 'test');
                 localStorage.removeItem('test');
                 localStorageAvailable = true;
-                storageStatus.textContent = "✓ I tuoi articoli verranno salvati automaticamente";
+                storageStatus.textContent = "✓ I tuoi articoli vengono salvati automaticamente";
+                storageStatus.style.color = "#27ae60";
             } catch(e) {
                 localStorageAvailable = false;
                 storageStatus.textContent = "⚠️ La tua lista non verrà salvata quando chiudi la pagina";
+                storageStatus.style.color = "#e74c3c";
             }
             
             // Carica la lista salvata, se esiste
@@ -225,7 +273,17 @@
             });
             
             // Aggiungi un nuovo elemento
-            addButton.addEventListener('click', function() {
+            addButton.addEventListener('click', addNewItem);
+            
+            // Permetti di aggiungere un elemento premendo Enter
+            itemInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    addNewItem();
+                }
+            });
+            
+            // Funzione per aggiungere un nuovo elemento dalla casella di input
+            function addNewItem() {
                 const itemText = itemInput.value.trim();
                 if (itemText !== '') {
                     // Rimuovi il messaggio "lista vuota" se presente
@@ -245,29 +303,7 @@
                     // Rimetti il focus sull'input
                     itemInput.focus();
                 }
-            });
-            
-            // Permetti di aggiungere un elemento premendo Enter
-            itemInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    const itemText = itemInput.value.trim();
-                    if (itemText !== '') {
-                        // Rimuovi il messaggio "lista vuota" se presente
-                        const emptyNotice = document.querySelector('.empty-list');
-                        if (emptyNotice) {
-                            emptyNotice.remove();
-                        }
-                        
-                        addItemToList(itemText);
-                        
-                        // Salva la lista
-                        saveShoppingList();
-                        
-                        // Pulisci il campo di input
-                        itemInput.value = '';
-                    }
-                }
-            });
+            }
             
             // Funzione per aggiungere un elemento alla lista
             function addItemToList(itemText) {
@@ -305,6 +341,91 @@
                 shoppingList.appendChild(li);
             }
             
+            // Cancella tutta la lista
+            clearAllButton.addEventListener('click', function() {
+                // Chiedi conferma prima di cancellare
+                if (confirm('Sei sicuro di voler cancellare tutta la lista?')) {
+                    // Svuota la lista
+                    shoppingList.innerHTML = '';
+                    
+                    // Aggiungi il messaggio "lista vuota"
+                    const emptyLi = document.createElement('li');
+                    emptyLi.textContent = 'La tua lista della spesa è vuota';
+                    emptyLi.className = 'empty-list';
+                    shoppingList.appendChild(emptyLi);
+                    
+                    // Salva la lista vuota
+                    saveShoppingList();
+                }
+            });
+            
+            // Esporta la lista come file JSON
+            exportButton.addEventListener('click', function() {
+                const items = [];
+                document.querySelectorAll('#shopping-list li:not(.empty-list)').forEach(function(li) {
+                    items.push(li.querySelector('.item-text').textContent);
+                });
+                
+                if (items.length === 0) {
+                    alert('La lista è vuota, non c\'è niente da esportare.');
+                    return;
+                }
+                
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(items));
+                const downloadAnchorNode = document.createElement('a');
+                downloadAnchorNode.setAttribute("href", dataStr);
+                downloadAnchorNode.setAttribute("download", "lista_spesa.json");
+                document.body.appendChild(downloadAnchorNode);
+                downloadAnchorNode.click();
+                downloadAnchorNode.remove();
+            });
+            
+            // Importa la lista da un file JSON
+            importButton.addEventListener('click', function() {
+                importInput.click();
+            });
+            
+            importInput.addEventListener('change', function(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const items = JSON.parse(e.target.result);
+                        
+                        if (Array.isArray(items) && items.length > 0) {
+                            // Rimuovi il messaggio "lista vuota" se presente
+                            const emptyNotice = document.querySelector('.empty-list');
+                            if (emptyNotice) {
+                                emptyNotice.remove();
+                            }
+                            
+                            // Rimuovi gli elementi esistenti
+                            shoppingList.innerHTML = '';
+                            
+                            // Aggiungi gli elementi importati
+                            items.forEach(itemText => {
+                                addItemToList(itemText);
+                            });
+                            
+                            // Salva la lista
+                            saveShoppingList();
+                            
+                            alert('Lista importata con successo!');
+                        } else {
+                            alert('Il file non contiene elementi validi.');
+                        }
+                    } catch (error) {
+                        alert('Errore durante l\'importazione del file. Assicurati che sia un file JSON valido.');
+                        console.error('Errore di importazione:', error);
+                    }
+                };
+                reader.readAsText(file);
+                // Resetta l'input file per consentire di selezionare lo stesso file più volte
+                importInput.value = '';
+            });
+            
             // Salva la lista nel localStorage
             function saveShoppingList() {
                 if (!localStorageAvailable) return;
@@ -318,6 +439,8 @@
                     localStorage.setItem('shoppingList', JSON.stringify(items));
                 } catch(e) {
                     console.error('Errore nel salvataggio della lista:', e);
+                    storageStatus.textContent = "⚠️ Errore nel salvataggio della lista";
+                    storageStatus.style.color = "#e74c3c";
                 }
             }
             
@@ -341,6 +464,8 @@
                     }
                 } catch(e) {
                     console.error('Errore nel caricamento della lista:', e);
+                    storageStatus.textContent = "⚠️ Errore nel caricamento della lista";
+                    storageStatus.style.color = "#e74c3c";
                 }
             }
         });
