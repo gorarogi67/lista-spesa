@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lista della Spesa - File JSON</title>
+    <title>Lista della Spesa - GitHub</title>
     <style>
         :root {
             --primary-color: #27ae60;
@@ -114,19 +114,6 @@
             background-color: var(--danger-hover);
         }
         
-        .outline-button {
-            background-color: transparent;
-            color: var(--secondary-color);
-            border: 1px solid var(--secondary-color);
-            padding: 8px 15px;
-            margin-top: 10px;
-            width: 100%;
-        }
-        
-        .outline-button:hover {
-            background-color: rgba(52, 152, 219, 0.1);
-        }
-        
         .fullwidth {
             width: 100%;
             margin-bottom: 15px;
@@ -208,7 +195,7 @@
             text-align: center;
             margin-top: 15px;
             font-size: 14px;
-            padding: 5px;
+            padding: 8px;
             border-radius: 4px;
         }
         
@@ -236,6 +223,28 @@
             font-size: 14px;
             color: var(--text-light);
             margin-top: 5px;
+        }
+        
+        /* Instructions */
+        .instructions {
+            font-size: 14px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-left: 4px solid var(--secondary-color);
+        }
+        
+        .instructions ol, .instructions ul {
+            margin-left: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .instructions li {
+            background: none;
+            box-shadow: none;
+            padding: 3px 0;
+            display: list-item;
+            margin-bottom: 5px;
         }
         
         /* Loading */
@@ -278,9 +287,18 @@
         <h1>Lista della Spesa</h1>
         
         <div class="card">
-            <h2>Gestione lista</h2>
-            <button id="refresh-list" class="secondary-button fullwidth">Aggiorna lista dal file JSON</button>
-            <div id="sync-status" class="status info" style="display:none;"></div>
+            <div class="instructions">
+                <strong>Come usare questa app:</strong>
+                <ol>
+                    <li>Aggiungi prodotti alla lista</li>
+                    <li>Premi "Esporta lista" per scaricare il file JSON</li>
+                    <li>Sostituisci il file "lista-spesa.json" nel tuo repository GitHub</li>
+                    <li>Gli altri utenti possono premere "Aggiorna" per vedere la lista aggiornata</li>
+                </ol>
+            </div>
+            
+            <button id="refresh-list" class="secondary-button fullwidth">Aggiorna lista dal repository</button>
+            <div id="last-update" class="hint" style="text-align: center;">Ultimo aggiornamento: mai</div>
         </div>
         
         <div class="input-container">
@@ -302,9 +320,9 @@
         <button id="clear-all" class="danger-button fullwidth">Cancella tutta la lista</button>
         
         <div class="card">
-            <h2>Esporta lista per aggiornare il file JSON</h2>
-            <p class="hint">Scarica questo file e sostituisci il file "lista-spesa.json" nel repository:</p>
-            <button id="export-button" class="primary-button fullwidth">Esporta lista</button>
+            <h2>Salva le modifiche</h2>
+            <button id="export-button" class="primary-button fullwidth">Esporta lista (JSON)</button>
+            <div id="export-status" class="status info" style="display:none;"></div>
         </div>
         
         <div id="loading" class="loading">
@@ -326,7 +344,8 @@
             const clearAllButton = document.getElementById('clear-all');
             const refreshListButton = document.getElementById('refresh-list');
             const exportButton = document.getElementById('export-button');
-            const syncStatus = document.getElementById('sync-status');
+            const exportStatus = document.getElementById('export-status');
+            const lastUpdate = document.getElementById('last-update');
             
             // Initialize variables
             let shoppingItems = [];
@@ -399,8 +418,7 @@
             
             // Export list as JSON file
             exportButton.addEventListener('click', function() {
-                if (shoppingItems.length === 0) {
-                    alert('La lista è vuota, non c\'è niente da esportare.');
+                if (shoppingItems.length === 0 && !confirm('La lista è vuota. Vuoi comunque esportare una lista vuota?')) {
                     return;
                 }
                 
@@ -412,13 +430,20 @@
                 downloadAnchorNode.click();
                 downloadAnchorNode.remove();
                 
-                showSyncStatus('File JSON esportato con successo. Sostituisci il file nel repository per rendere le modifiche disponibili a tutti.', 'success');
+                showExportStatus(`
+                    <strong>File JSON esportato con successo!</strong><br>
+                    Per rendere le modifiche disponibili a tutti:<br>
+                    1. Vai al tuo repository GitHub<br>
+                    2. Carica o sostituisci il file "${jsonFilename}"<br>
+                    3. Commit delle modifiche
+                `, 'success');
             });
             
             // Functions
             function loadListFromFile() {
                 loadingIndicator.style.display = 'block';
                 
+                // Add cache-busting parameter to avoid browser caching
                 fetch(jsonFilename + '?_=' + new Date().getTime())
                     .then(response => {
                         if (!response.ok) {
@@ -431,14 +456,27 @@
                         renderShoppingList();
                         saveListToLocalStorage();
                         loadingIndicator.style.display = 'none';
-                        showSyncStatus('Lista caricata con successo dal file!', 'success');
+                        
+                        // Update last update timestamp
+                        const now = new Date();
+                        const timeString = now.toLocaleTimeString();
+                        const dateString = now.toLocaleDateString();
+                        lastUpdate.textContent = `Ultimo aggiornamento: ${dateString} ${timeString}`;
+                        
+                        // Show success message
+                        showExportStatus('Lista aggiornata con successo dal repository!', 'success');
                     })
                     .catch(error => {
                         console.error('Error loading list from file:', error);
                         // Try to load from localStorage if file fails
                         loadFromLocalStorage();
                         loadingIndicator.style.display = 'none';
-                        showSyncStatus('Errore nel caricamento del file. Utilizzati dati locali.', 'warning');
+                        
+                        showExportStatus(`
+                            <strong>Errore nel caricamento del file.</strong><br>
+                            Assicurati che il file "${jsonFilename}" esista nel repository.<br>
+                            Per ora vengono utilizzati i dati locali.
+                        `, 'warning');
                     });
             }
             
@@ -463,6 +501,8 @@
                         shoppingItems.push(itemText);
                         renderShoppingList();
                         saveListToLocalStorage();
+                    } else {
+                        showExportStatus('Questo elemento è già nella lista!', 'info');
                     }
                     
                     // Clear input field
@@ -512,14 +552,17 @@
                 localStorage.setItem('shoppingList', JSON.stringify(shoppingItems));
             }
             
-            function showSyncStatus(message, type) {
-                syncStatus.textContent = message;
-                syncStatus.className = 'status ' + type;
-                syncStatus.style.display = 'block';
+            function showExportStatus(message, type) {
+                exportStatus.innerHTML = message;
+                exportStatus.className = 'status ' + type;
+                exportStatus.style.display = 'block';
                 
-                setTimeout(() => {
-                    syncStatus.style.display = 'none';
-                }, 10000);
+                // Auto-hide success messages after 10 seconds
+                if (type === 'success') {
+                    setTimeout(() => {
+                        exportStatus.style.display = 'none';
+                    }, 10000);
+                }
             }
         });
     </script>
